@@ -32,7 +32,7 @@ def train_als():
     return als_model
 
 
-def print_predictions(name, model):
+def print_predictions_quality(name, model):
     test_rmse = model.calculate_rmse(R_test)
     ranking_metrics = model.evaluate_ranking(R_train, R_test, k=10, relevance_threshold=4.0)
     total_time = np.sum(model.history['epoch_time'])
@@ -58,8 +58,8 @@ if __name__ == "__main__":
     als_model = train_als()
 
     print("\n================ RESULTADOS EN TEST ================")
-    print_predictions("SGD", sgd_model)
-    print_predictions("ALS", als_model)
+    print_predictions_quality("SGD", sgd_model)
+    print_predictions_quality("ALS", als_model)
 
     user_idx = 22
     print_recommendations("SGD", sgd_model, user_idx)
