@@ -47,14 +47,14 @@ class SGD(BaseMatrixFactorization):
             train_rmse = self.calculate_rmse(R_train)
             self.history['train_rmse'].append(train_rmse)
 
-            val_str = ""
+            test_str = ""
             if R_val is not None:
-                val_rmse = self.calculate_rmse(R_val)
-                self.history['val_rmse'].append(val_rmse)
-                val_str = f" | Val RMSE: {val_rmse:.4f}"
+                test_rmse = self.calculate_rmse(R_val)
+                self.history['val_rmse'].append(test_rmse)
+                test_str = f" | Test RMSE: {test_rmse:.4f}"
 
             if verbose:
                 print(f"[SGD] Época {epoch:2d}/{self.n_epochs} ({elapsed:.2f}s) - "
-                      f"Train RMSE: {train_rmse:.4f}{val_str}")
+                      f"Train RMSE: {train_rmse:.4f}{test_str}")
 
         return self
