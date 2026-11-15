@@ -1,7 +1,7 @@
 import time
 import numpy as np
 import scipy.sparse as sp
-from SistemaRecomendacion.src.main.BaseMatrixFactorization import BaseMatrixFactorization
+from main.BaseMatrixFactorization import BaseMatrixFactorization
 
 
 class Baseline(BaseMatrixFactorization):
