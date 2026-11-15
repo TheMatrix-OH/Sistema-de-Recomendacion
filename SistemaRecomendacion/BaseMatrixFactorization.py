@@ -53,6 +53,15 @@ class BaseMatrixFactorization:
         precisions = []
         ndcgs = []
 
+        self.calculate_recommendation_quality(R_test_csr, R_train_csr, k, n_users, ndcgs, precisions, relevance_threshold)
+
+        return {
+            f'Precision@{k}': float(np.mean(precisions)) if precisions else 0.0,
+            f'NDCG@{k}': float(np.mean(ndcgs)) if ndcgs else 0.0
+        }
+
+    def calculate_recommendation_quality(self, R_test_csr, R_train_csr, k, n_users, ndcgs,
+                                     precisions, relevance_threshold):
         for u in range(n_users):
             test_items = R_test_csr[u].indices
             test_ratings = R_test_csr[u].data
@@ -61,17 +70,18 @@ class BaseMatrixFactorization:
             if len(relevant_items) == 0:
                 continue
 
-            recommended = self.recommend(u, R_train_csr, top_k=k)
+            hits = self.calculate_precision(R_train_csr, k, precisions, relevant_items, u)
+            self.calculate_ndcg(hits, k, ndcgs, relevant_items)
 
-            hits = [1.0 if item in relevant_items else 0.0 for item in recommended]
-            precisions.append(np.sum(hits) / k)
+    def calculate_precision(self, R_train_csr, k, precisions, relevant_items, u):
+        recommended = self.recommend(u, R_train_csr, top_k=k)
 
-            dcg = sum(hit / np.log2(idx + 2) for idx, hit in enumerate(hits))
-            idcg_count = min(len(relevant_items), k)
-            idcg = sum(1.0 / np.log2(idx + 2) for idx in range(idcg_count))
-            ndcgs.append(dcg / idcg if idcg > 0 else 0.0)
+        hits = [1.0 if item in relevant_items else 0.0 for item in recommended]
+        precisions.append(np.sum(hits) / k)
+        return hits
 
-        return {
-            f'Precision@{k}': float(np.mean(precisions)) if precisions else 0.0,
-            f'NDCG@{k}': float(np.mean(ndcgs)) if ndcgs else 0.0
-        }
+    def calculate_ndcg(self, hits, k, ndcgs, relevant_items):
+        dcg = sum(hit / np.log2(idx + 2) for idx, hit in enumerate(hits))
+        idcg_count = min(len(relevant_items), k)
+        idcg = sum(1.0 / np.log2(idx + 2) for idx in range(idcg_count))
+        ndcgs.append(dcg / idcg if idcg > 0 else 0.0)
