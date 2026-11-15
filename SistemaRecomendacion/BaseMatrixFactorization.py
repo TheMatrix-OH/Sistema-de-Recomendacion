@@ -31,14 +31,18 @@ class BaseMatrixFactorization:
         return self.P @ self.Q.T
 
     def calculate_rmse(self, R):
-        if not sp.issparse(R):
-            R = sp.csr_matrix(R)
-        users, items = R.nonzero()
-        actual = R.data
+
+        R_coo = sp.coo_matrix(R)
+        users = R_coo.row
+        items = R_coo.col
+        actual = R_coo.data
         predictions = np.sum(self.P[users, :] * self.Q[items, :], axis=1)
         return float(np.sqrt(np.mean((actual - predictions) ** 2)))
 
     def recommend(self, u, R_train_csr, top_k=10):
+
+        if not sp.isspmatrix_csr(R_train_csr):
+            R_train_csr = sp.csr_matrix(R_train_csr)
         scores = self.P[u, :] @ self.Q.T
         seen_items = R_train_csr[u].indices
         scores[seen_items] = -np.inf
@@ -46,6 +50,7 @@ class BaseMatrixFactorization:
         return top_items
 
     def evaluate_ranking(self, R_train, R_test, k=10, relevance_threshold=3.5):
+
         R_train_csr = R_train.tocsr()
         R_test_csr = R_test.tocsr()
         n_users = R_train_csr.shape[0]

@@ -6,7 +6,7 @@ from BaseMatrixFactorization import BaseMatrixFactorization
 
 class SGD(BaseMatrixFactorization):
 
-    def __init__(self, n_factors=20, lr=0.005, reg=0.1, n_epochs=20, seed=42):
+    def __init__(self, n_factors=20, lr=0.005, reg=0.1, n_epochs=30, seed=42):
         super().__init__(n_factors=n_factors, reg=reg, n_epochs=n_epochs, seed=seed)
         self.lr = lr
 
