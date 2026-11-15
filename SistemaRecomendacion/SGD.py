@@ -6,9 +6,9 @@ from BaseMatrixFactorization import BaseMatrixFactorization
 
 class SGD(BaseMatrixFactorization):
 
-    def __init__(self, n_factors=20, lr=0.005, reg=0.1, n_epochs=20, seed=42):
+    def __init__(self, n_factors=20, lr=0.005, reg=0.1, n_epochs=30, seed=42):
         super().__init__(n_factors=n_factors, reg=reg, n_epochs=n_epochs, seed=seed)
-        self.lr = lr  # Tasa de aprendizaje (learning rate)
+        self.lr = lr
 
     def fit(self, R_train, R_val=None, verbose=True):
         if not sp.issparse(R_train):
@@ -17,7 +17,6 @@ class SGD(BaseMatrixFactorization):
         n_users, n_items = R_train.shape
         self._init_matrices(n_users, n_items)
 
-        # Extraer las ternas observadas (usuario, ítem, valoración)
         R_coo = R_train.tocoo()
         users = R_coo.row
         items = R_coo.col
@@ -34,21 +33,17 @@ class SGD(BaseMatrixFactorization):
                 i = items[idx]
                 r = ratings[idx]
 
-                # Predicción actual y error
                 prediction = np.dot(self.P[u, :], self.Q[i, :])
                 err = r - prediction
 
-                # Guardamos copia temporal de P[u] para no alterar la actualización de Q[i]
                 p_u_old = self.P[u, :].copy()
 
-                # Actualización de gradientes con regularización L2
                 self.P[u, :] += self.lr * (err * self.Q[i, :] - self.reg * self.P[u, :])
                 self.Q[i, :] += self.lr * (err * p_u_old - self.reg * self.Q[i, :])
 
             elapsed = time.perf_counter() - t0
             self.history['epoch_time'].append(elapsed)
 
-            # Registro de métricas de convergencia
             train_rmse = self.calculate_rmse(R_train)
             self.history['train_rmse'].append(train_rmse)
 

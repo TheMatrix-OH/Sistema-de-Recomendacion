@@ -1,24 +1,50 @@
+import os
 import numpy as np
-import scipy.sparse as sp
+from DataLoader import load_train_val_test, load_movie_titles
 from SGD import SGD
 from ALS import ALS
 
 if __name__ == "__main__":
-    # Generar una matriz dispersa sintética de prueba (200 usuarios x 100 películas)
-    np.random.seed(42)
-    n_users, n_items = 200, 100
-    users = np.random.randint(0, n_users, size=2500)
-    items = np.random.randint(0, n_items, size=2500)
-    ratings = np.random.choice([1.0, 2.0, 3.0, 4.0, 5.0], size=2500)
 
-    R_train = sp.csr_matrix((ratings, (users, items)), shape=(n_users, n_items))
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    data_dir = os.path.join(project_root, "ml-100k")
+
+    print("Cargando datos de MovieLens 100K...")
+    R_train, R_val, R_test = load_train_val_test(data_dir, fold=1, val_ratio=0.1, seed=42)
+    titles = load_movie_titles(data_dir)
+
+    print(f"Dimensiones matriz: {R_train.shape[0]} usuarios x {R_train.shape[1]} películas")
+    print(f"Valoraciones -> Train: {R_train.nnz} | Val: {R_val.nnz} | Test: {R_test.nnz}\n")
+
 
     print("--- Entrenando SGD ---")
-    sgd_model = SGD(n_factors=10, lr=0.01, reg=0.1, n_epochs=10)
-    sgd_model.fit(R_train)
+    sgd_model = SGD(n_factors=20, lr=0.005, reg=0.05, n_epochs=50, seed=42)
+    sgd_model.fit(R_train, R_val=R_val)
 
     print("\n--- Entrenando ALS ---")
-    als_model = ALS(n_factors=10, reg=0.1, n_epochs=10)
-    als_model.fit(R_train)
+    als_model = ALS(n_factors=20, reg=10.0, n_epochs=50, seed=42)
+    als_model.fit(R_train, R_val=R_val)
 
-    print(f"\nPredicción ejemplo (u=0, i=5) -> SGD: {sgd_model.predict(0, 5):.2f} | ALS: {als_model.predict(0, 5):.2f}")
+    print("\n================ RESULTADOS EN TEST ================")
+    for name, model in [("SGD", sgd_model), ("ALS", als_model)]:
+        test_rmse = model.calculate_rmse(R_test)
+        ranking_metrics = model.evaluate_ranking(R_train, R_test, k=10, relevance_threshold=4.0)
+        total_time = np.sum(model.history['epoch_time'])
+
+        print(f"{name:3s} -> Test RMSE: {test_rmse:.4f} | "
+              f"Precision@10: {ranking_metrics['Precision@10']:.4f} | "
+              f"NDCG@10: {ranking_metrics['NDCG@10']:.4f} | "
+              f"Tiempo total: {total_time:.2f}s")
+
+    user_idx = 22
+    print(f"\n--- Top 5 Recomendaciones para el Usuario {user_idx + 1} (ALS)---")
+    top_items = als_model.recommend(user_idx, R_train, top_k=5)
+    for rank, item_idx in enumerate(top_items, start=1):
+        pred_score = als_model.predict(user_idx, item_idx)
+        print(f"  {rank}. {titles.get(item_idx, 'Desconocida')} (Predicción: {pred_score:.2f} ★)")
+
+    print(f"\n--- Top 5 Recomendaciones para el Usuario {user_idx + 1} (SGD)---")
+    top_items = sgd_model.recommend(user_idx, R_train, top_k=5)
+    for rank, item_idx in enumerate(top_items, start=1):
+        pred_score = sgd_model.predict(user_idx, item_idx)
+        print(f"  {rank}. {titles.get(item_idx, 'Desconocida')} (Predicción: {pred_score:.2f} ★)")

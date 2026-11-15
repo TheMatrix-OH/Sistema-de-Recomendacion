@@ -5,59 +5,52 @@ from BaseMatrixFactorization import BaseMatrixFactorization
 
 
 class ALS(BaseMatrixFactorization):
-    """
-    Factorización de Matrices mediante Mínimos Cuadrados Alternados (ALS).
-    Hereda predicción y métricas de BaseMatrixFactorization.
-    """
 
-    def __init__(self, n_factors=20, reg=0.1, n_epochs=15, seed=42):
+    def __init__(self, n_factors=20, reg=0.1, n_epochs=30, seed=42):
         super().__init__(n_factors=n_factors, reg=reg, n_epochs=n_epochs, seed=seed)
 
     def fit(self, R_train, R_val=None, verbose=True):
-        """
-        Entrena el modelo alternando la resolución exacta de sistemas lineales
-        para usuarios (fijando Q) y para ítems (fijando P).
-        """
+
         if not sp.issparse(R_train):
             R_train = sp.csr_matrix(R_train)
 
         n_users, n_items = R_train.shape
         self._init_matrices(n_users, n_items)
 
-        # CSR para acceso rápido por filas (usuarios) y CSC para acceso por columnas (ítems)
+
         R_csr = R_train.tocsr()
         R_csc = R_train.tocsc()
 
-        # Matriz identidad escalada por el parámetro de regularización lambda
+
         I_reg = self.reg * np.eye(self.n_factors)
 
         for epoch in range(1, self.n_epochs + 1):
             t0 = time.perf_counter()
 
-            # 1. PASO USUARIOS: Fijar Q y resolver para cada usuario u
+
             for u in range(n_users):
                 item_indices = R_csr[u].indices
                 if len(item_indices) == 0:
                     continue
 
                 ratings_u = R_csr[u].data
-                Q_u = self.Q[item_indices, :]  # Submatriz (n_valorados_por_u x k)
+                Q_u = self.Q[item_indices, :]
 
-                # Ecuación normal: (Q_u^T * Q_u + lambda * I) * p_u = Q_u^T * r_u
+
                 A_u = Q_u.T @ Q_u + I_reg
                 b_u = Q_u.T @ ratings_u
                 self.P[u, :] = np.linalg.solve(A_u, b_u)
 
-            # 2. PASO ÍTEMS: Fijar P y resolver para cada ítem i
+
             for i in range(n_items):
                 user_indices = R_csc[:, i].indices
                 if len(user_indices) == 0:
                     continue
 
                 ratings_i = R_csc[:, i].data
-                P_i = self.P[user_indices, :]  # Submatriz (n_usuarios_que_valoraron_i x k)
+                P_i = self.P[user_indices, :]
 
-                # Ecuación normal: (P_i^T * P_i + lambda * I) * q_i = P_i^T * r_i
+
                 A_i = P_i.T @ P_i + I_reg
                 b_i = P_i.T @ ratings_i
                 self.Q[i, :] = np.linalg.solve(A_i, b_i)
@@ -65,7 +58,7 @@ class ALS(BaseMatrixFactorization):
             elapsed = time.perf_counter() - t0
             self.history['epoch_time'].append(elapsed)
 
-            # Registro de métricas de convergencia
+
             train_rmse = self.calculate_rmse(R_csr)
             self.history['train_rmse'].append(train_rmse)
 
