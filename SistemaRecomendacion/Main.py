@@ -4,8 +4,9 @@ from DataLoader import load_train_val_test, load_movie_titles
 from SGD import SGD
 from ALS import ALS
 
-if __name__ == "__main__":
 
+def load_data():
+    global R_train, R_val, R_test, titles
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_dir = os.path.join(project_root, "ml-100k")
 
@@ -17,34 +18,49 @@ if __name__ == "__main__":
     print(f"Valoraciones -> Train: {R_train.nnz} | Val: {R_val.nnz} | Test: {R_test.nnz}\n")
 
 
+def train_sgd():
     print("--- Entrenando SGD ---")
     sgd_model = SGD(n_factors=20, lr=0.005, reg=0.05, n_epochs=50, seed=42)
     sgd_model.fit(R_train, R_val=R_val)
+    return sgd_model
 
+
+def train_als():
     print("\n--- Entrenando ALS ---")
     als_model = ALS(n_factors=20, reg=10.0, n_epochs=50, seed=42)
     als_model.fit(R_train, R_val=R_val)
+    return als_model
+
+
+def print_predictions(name, model):
+    test_rmse = model.calculate_rmse(R_test)
+    ranking_metrics = model.evaluate_ranking(R_train, R_test, k=10, relevance_threshold=4.0)
+    total_time = np.sum(model.history['epoch_time'])
+
+    print(f"{name:3s} -> Test RMSE: {test_rmse:.4f} | "
+          f"Precision@10: {ranking_metrics['Precision@10']:.4f} | "
+          f"NDCG@10: {ranking_metrics['NDCG@10']:.4f} | "
+          f"Tiempo total: {total_time:.2f}s")
+
+
+def print_recommendations(name, model, user_idx):
+    global top_items, rank, item_idx, pred_score
+    print(f"\n--- Top 5 Recomendaciones para el Usuario {user_idx + 1} ({name:3s}) ---")
+    top_items = model.recommend(user_idx, R_train, top_k=5)
+    for rank, item_idx in enumerate(top_items, start=1):
+        pred_score = model.predict(user_idx, item_idx)
+        print(f"  {rank}. {titles.get(item_idx, 'Desconocida')} (Predicción: {pred_score:.2f} ★)")
+
+
+if __name__ == "__main__":
+    load_data()
+    sgd_model = train_sgd()
+    als_model = train_als()
 
     print("\n================ RESULTADOS EN TEST ================")
-    for name, model in [("SGD", sgd_model), ("ALS", als_model)]:
-        test_rmse = model.calculate_rmse(R_test)
-        ranking_metrics = model.evaluate_ranking(R_train, R_test, k=10, relevance_threshold=4.0)
-        total_time = np.sum(model.history['epoch_time'])
-
-        print(f"{name:3s} -> Test RMSE: {test_rmse:.4f} | "
-              f"Precision@10: {ranking_metrics['Precision@10']:.4f} | "
-              f"NDCG@10: {ranking_metrics['NDCG@10']:.4f} | "
-              f"Tiempo total: {total_time:.2f}s")
+    print_predictions("SGD", sgd_model)
+    print_predictions("ALS", als_model)
 
     user_idx = 22
-    print(f"\n--- Top 5 Recomendaciones para el Usuario {user_idx + 1} (ALS)---")
-    top_items = als_model.recommend(user_idx, R_train, top_k=5)
-    for rank, item_idx in enumerate(top_items, start=1):
-        pred_score = als_model.predict(user_idx, item_idx)
-        print(f"  {rank}. {titles.get(item_idx, 'Desconocida')} (Predicción: {pred_score:.2f} ★)")
-
-    print(f"\n--- Top 5 Recomendaciones para el Usuario {user_idx + 1} (SGD)---")
-    top_items = sgd_model.recommend(user_idx, R_train, top_k=5)
-    for rank, item_idx in enumerate(top_items, start=1):
-        pred_score = sgd_model.predict(user_idx, item_idx)
-        print(f"  {rank}. {titles.get(item_idx, 'Desconocida')} (Predicción: {pred_score:.2f} ★)")
+    print_recommendations("SGD", sgd_model, user_idx)
+    print_recommendations("ALS", als_model, user_idx)

@@ -7,7 +7,6 @@ N_ITEMS = 1682
 
 
 def load_ratings_file(filepath, shape=(N_USERS, N_ITEMS)):
-
     data = np.loadtxt(filepath, delimiter='\t', dtype=np.int64)
     users = data[:, 0] - 1
     items = data[:, 1] - 1
@@ -17,7 +16,6 @@ def load_ratings_file(filepath, shape=(N_USERS, N_ITEMS)):
 
 
 def load_train_val_test(data_dir, fold=1, val_ratio=0.1, seed=42):
-
     base_path = os.path.join(data_dir, f"u{fold}.base")
     test_path = os.path.join(data_dir, f"u{fold}.test")
 
