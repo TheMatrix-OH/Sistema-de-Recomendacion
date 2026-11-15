@@ -3,6 +3,7 @@ import numpy as np
 from DataLoader import load_train_val_test, load_movie_titles
 from SGD import SGD
 from ALS import ALS
+from Baseline import Baseline
 
 
 def load_data():
@@ -20,14 +21,14 @@ def load_data():
 
 def train_sgd():
     print("--- Entrenando SGD ---")
-    sgd_model = SGD(n_factors=20, lr=0.005, reg=0.05, n_epochs=50, seed=42)
+    sgd_model = SGD(n_factors=20, lr=0.005, reg=0.05, n_epochs=30, seed=42)
     sgd_model.fit(R_train, R_val=R_val)
     return sgd_model
 
 
 def train_als():
     print("\n--- Entrenando ALS ---")
-    als_model = ALS(n_factors=20, reg=10.0, n_epochs=50, seed=42)
+    als_model = ALS(n_factors=20, reg=10.0, n_epochs=30, seed=42)
     als_model.fit(R_train, R_val=R_val)
     return als_model
 
@@ -50,16 +51,24 @@ def print_recommendations(name, model, user_idx):
         pred_score = model.predict(user_idx, item_idx)
         print(f"  {rank}. {titles.get(item_idx, 'Desconocida')} (Predicción: {pred_score:.2f} ★)")
 
+def train_baseline():
+    print("\n--- Entrenando Baseline ---")
+    baseline_model = Baseline(damping=10.0)
+    baseline_model.fit(R_train, R_val=R_val)
+    return baseline_model
+
 
 if __name__ == "__main__":
     load_data()
     sgd_model = train_sgd()
     als_model = train_als()
+    baseline_model = train_baseline()
 
     print("\n================ RESULTADOS EN TEST ================")
     print_predictions_quality("SGD", sgd_model)
     print_predictions_quality("ALS", als_model)
-
+    print_predictions_quality("Baseline",baseline_model)
     user_idx = 22
     print_recommendations("SGD", sgd_model, user_idx)
     print_recommendations("ALS", als_model, user_idx)
+    print_recommendations("Baseline", baseline_model, user_idx)
