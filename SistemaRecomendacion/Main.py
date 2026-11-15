@@ -4,7 +4,6 @@ from SGD import SGD
 from ALS import ALS
 
 if __name__ == "__main__":
-    # Generar una matriz dispersa sintética de prueba (200 usuarios x 100 películas)
     np.random.seed(42)
     n_users, n_items = 200, 100
     users = np.random.randint(0, n_users, size=2500)
