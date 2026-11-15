@@ -1,9 +1,9 @@
 import os
 import numpy as np
-from DataLoader import load_train_val_test, load_movie_titles
+from SistemaRecomendacion.src.main.DataLoader import load_train_val_test, load_movie_titles
 from SGD import SGD
-from ALS import ALS
-from Baseline import Baseline
+from SistemaRecomendacion.src.main.ALS import ALS
+from SistemaRecomendacion.src.main.Baseline import Baseline
 
 
 def load_data():
@@ -56,19 +56,3 @@ def print_recommendations(name, model, user_idx):
     for rank, item_idx in enumerate(top_items, start=1):
         pred_score = model.predict(user_idx, item_idx)
         print(f"  {rank}. {titles.get(item_idx, 'Desconocida')} (Predicción: {pred_score:.2f} ★)")
-
-
-if __name__ == "__main__":
-    load_data()
-    sgd_model = train_sgd()
-    als_model = train_als()
-    baseline_model = train_baseline()
-
-    print("\n================ RESULTADOS EN TEST ================")
-    print_predictions_quality("SGD", sgd_model)
-    print_predictions_quality("ALS", als_model)
-    print_predictions_quality("Baseline", baseline_model)
-    user_idx = 22
-    print_recommendations("SGD", sgd_model, user_idx)
-    print_recommendations("ALS", als_model, user_idx)
-    print_recommendations("Baseline", baseline_model, user_idx)
