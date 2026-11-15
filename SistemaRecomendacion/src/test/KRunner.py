@@ -1,11 +1,13 @@
-from main.DataLoader import load_train_val_test, load_movie_titles
-from test.KTester import *
+import os
+
+from SistemaRecomendacion.src.main.DataLoader import load_train_val_test, load_movie_titles
+from SistemaRecomendacion.src.test.KTester import KTester
 
 
 def load_data():
     global R_train, R_val, R_test, titles
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    data_dir = os.path.join(project_root, "ml-100k")
+    data_dir = os.path.join(project_root, "..", "..", "ml-100k")
 
     print("Cargando datos de MovieLens 100K...")
     R_train, R_val, R_test = load_train_val_test(data_dir, fold=1, val_ratio=0.1, seed=42)
@@ -18,7 +20,7 @@ def load_data():
 if __name__ == "__main__":
     load_data()
 
-    k_values = [5, 10, 20]
+    k_values = [2,5, 10, 15, 20, 25]
     seeds = [21, 42, 123]
 
     experiment = KTester(

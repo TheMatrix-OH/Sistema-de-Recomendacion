@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from SistemaRecomendacion.src.main.DataLoader import load_train_val_test, load_movie_titles
-from SGD import SGD
+from SistemaRecomendacion.src.main.SGD import SGD
 from SistemaRecomendacion.src.main.ALS import ALS
 from SistemaRecomendacion.src.main.Baseline import Baseline
 
@@ -9,7 +9,7 @@ from SistemaRecomendacion.src.main.Baseline import Baseline
 def load_data():
     global R_train, R_val, R_test, titles
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    data_dir = os.path.join(project_root, "..\..\ml-100k")
+    data_dir = os.path.join(project_root, "..", "..", "ml-100k")
 
     print("Cargando datos de MovieLens 100K...")
     R_train, R_val, R_test = load_train_val_test(data_dir, fold=1, val_ratio=0.1, seed=42)

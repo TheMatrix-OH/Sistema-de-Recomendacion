@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from main.SGD import SGD
-from main.ALS import ALS
-from main.Baseline import Baseline
+from SistemaRecomendacion.src.main.SGD import SGD
+from SistemaRecomendacion.src.main.ALS import ALS
+from SistemaRecomendacion.src.main.Baseline import Baseline
 
 
 class KTester:
