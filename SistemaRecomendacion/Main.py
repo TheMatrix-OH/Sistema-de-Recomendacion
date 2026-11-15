@@ -33,6 +33,13 @@ def train_als():
     return als_model
 
 
+def train_baseline():
+    print("\n--- Entrenando Baseline ---")
+    baseline_model = Baseline(damping=10.0)
+    baseline_model.fit(R_train, R_val=R_val)
+    return baseline_model
+
+
 def print_predictions_quality(name, model):
     test_rmse = model.calculate_rmse(R_test)
     ranking_metrics = model.evaluate_ranking(R_train, R_test, k=10, relevance_threshold=4.0)
@@ -43,19 +50,12 @@ def print_predictions_quality(name, model):
           f"NDCG@10: {ranking_metrics['NDCG@10']:.4f} | "
           f"Tiempo total: {total_time:.2f}s")
 
-
 def print_recommendations(name, model, user_idx):
     print(f"\n--- Top 5 Recomendaciones para el Usuario {user_idx + 1} ({name:3s}) ---")
     top_items = model.recommend(user_idx, R_train, top_k=5)
     for rank, item_idx in enumerate(top_items, start=1):
         pred_score = model.predict(user_idx, item_idx)
         print(f"  {rank}. {titles.get(item_idx, 'Desconocida')} (Predicción: {pred_score:.2f} ★)")
-
-def train_baseline():
-    print("\n--- Entrenando Baseline ---")
-    baseline_model = Baseline(damping=10.0)
-    baseline_model.fit(R_train, R_val=R_val)
-    return baseline_model
 
 
 if __name__ == "__main__":
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     print("\n================ RESULTADOS EN TEST ================")
     print_predictions_quality("SGD", sgd_model)
     print_predictions_quality("ALS", als_model)
-    print_predictions_quality("Baseline",baseline_model)
+    print_predictions_quality("Baseline", baseline_model)
     user_idx = 22
     print_recommendations("SGD", sgd_model, user_idx)
     print_recommendations("ALS", als_model, user_idx)
