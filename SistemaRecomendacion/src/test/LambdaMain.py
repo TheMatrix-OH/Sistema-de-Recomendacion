@@ -1,7 +1,7 @@
 import os
 
-from SistemaRecomendacion.src.main.DataLoader import load_train_val_test, load_movie_titles
-from SistemaRecomendacion.src.test.LambdaRunner import LambdaTester
+from main.DataLoader import load_train_val_test, load_movie_titles
+from LambdaRunner import LambdaRunner
 
 
 def load_data():
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     lambda_values = [0.05, 0.1, 0.5, 1.0, 5.0, 10.0]
     seeds = [21, 42, 123]
 
-    experiment = LambdaTester(
+    experiment = LambdaRunner(
         lambda_values=lambda_values,
         seeds=seeds,
         k=20,

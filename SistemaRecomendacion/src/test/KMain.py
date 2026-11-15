@@ -1,5 +1,7 @@
+import os
+
 from main.DataLoader import load_train_val_test, load_movie_titles
-from KRunner import *
+from KRunner import KRunner
 
 
 def load_data():

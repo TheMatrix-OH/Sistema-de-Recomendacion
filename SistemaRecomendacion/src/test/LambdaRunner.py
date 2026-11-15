@@ -3,13 +3,14 @@ import time
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from pandas import DataFrame
 
-from SistemaRecomendacion.src.main.SGD import SGD
-from SistemaRecomendacion.src.main.ALS import ALS
-from SistemaRecomendacion.src.main.Baseline import Baseline
+from main.SGD import SGD
+from main.ALS import ALS
+from main.Baseline import Baseline
 
 
-class LambdaTester:
+class LambdaRunner:
 
     def __init__(
         self,
@@ -35,97 +36,108 @@ class LambdaTester:
         self.results = []
         self.summary = None
 
+
     def run(self, R_train, R_val, R_test):
         self.results = []
 
+        self.test_baseline(R_test, R_train, R_val)
+
+        for lambda_value in self.lambda_values:
+            print(f"\n========== lambda = {lambda_value} ==========")
+            for seed in self.seeds:
+                self.test_sgd(R_test, R_train, R_val, lambda_value, seed)
+                self.test_als(R_test, R_train, R_val, lambda_value, seed)
+
+        results_df = self.save_results()
+
+        self.make_summary(results_df)
+        self.save_summary()
+        self.show_summary()
+
+        return self.summary
+
+
+    def test_baseline(self, R_test, R_train, R_val):
         print("\n========== BASELINE ==========")
 
         baseline = Baseline(damping=self.damping)
 
         start = time.perf_counter()
-        baseline.fit(R_train, R_val=R_val, verbose=False)
+        baseline.fit(R_train, R_val, False)
         elapsed = time.perf_counter() - start
 
         baseline_rmse = baseline.calculate_rmse(R_test)
-
         print(f"Baseline -> Test RMSE: {baseline_rmse:.4f}")
 
+        self.append_result("Baseline", elapsed, np.nan, np.nan, baseline_rmse)
+
+
+    def test_sgd(self, R_test, R_train, R_val, lambda_value, seed):
+        print(f"\nSGD | lambda={lambda_value} | seed={seed}")
+
+        sgd_model = SGD(
+            n_factors=self.k,
+            lr=self.sgd_lr,
+            reg=lambda_value,
+            n_epochs=self.n_epochs,
+            seed=seed
+        )
+
+        start = time.perf_counter()
+        sgd_model.fit(R_train, R_val, False)
+        elapsed = time.perf_counter() - start
+
+        test_rmse = sgd_model.calculate_rmse(R_test)
+        print(f"Test RMSE: {test_rmse:.4f}")
+
+        self.append_result("SGD", elapsed, lambda_value, seed, test_rmse)
+
+
+    def test_als(self, R_test, R_train, R_val, lambda_value, seed):
+        print(f"\nALS | lambda={lambda_value} | seed={seed}")
+
+        als_model = ALS(
+            n_factors=self.k,
+            reg=lambda_value,
+            n_epochs=self.n_epochs,
+            seed=seed
+        )
+
+        start = time.perf_counter()
+        als_model.fit(R_train, R_val, False)
+        elapsed = time.perf_counter() - start
+
+        test_rmse = als_model.calculate_rmse(R_test)
+
+        print(f"Test RMSE: {test_rmse:.4f}")
+
+        self.append_result("ALS", elapsed, lambda_value, seed, test_rmse)
+
+
+    def append_result(self, method, elapsed, lambda_value, seed, test_rmse):
         self.results.append({
-            "method": "Baseline",
-            "lambda": np.nan,
-            "seed": np.nan,
-            "test_rmse": baseline_rmse,
+            "method": method,
+            "lambda": lambda_value,
+            "seed": seed,
+            "test_rmse": test_rmse,
             "time": elapsed
         })
 
-        for reg in self.lambda_values:
 
-            print(f"\n========== lambda = {reg} ==========")
-
-            for seed in self.seeds:
-
-                print(f"\nSGD | k={self.k} | lambda={reg} | seed={seed}")
-
-                sgd_model = SGD(
-                    n_factors=self.k,
-                    lr=self.sgd_lr,
-                    reg=reg,
-                    n_epochs=self.n_epochs,
-                    seed=seed
-                )
-
-                start = time.perf_counter()
-                sgd_model.fit(R_train, R_val=R_val, verbose=False)
-                elapsed = time.perf_counter() - start
-
-                test_rmse = sgd_model.calculate_rmse(R_test)
-
-                self.results.append({
-                    "method": "SGD",
-                    "lambda": reg,
-                    "seed": seed,
-                    "test_rmse": test_rmse,
-                    "time": elapsed
-                })
-
-                print(f"Test RMSE: {test_rmse:.4f}")
-
-                print(f"\nALS | k={self.k} | lambda={reg} | seed={seed}")
-
-                als_model = ALS(
-                    n_factors=self.k,
-                    reg=reg,
-                    n_epochs=self.n_epochs,
-                    seed=seed
-                )
-
-                start = time.perf_counter()
-                als_model.fit(R_train, R_val=R_val, verbose=False)
-                elapsed = time.perf_counter() - start
-
-                test_rmse = als_model.calculate_rmse(R_test)
-
-                self.results.append({
-                    "method": "ALS",
-                    "lambda": reg,
-                    "seed": seed,
-                    "test_rmse": test_rmse,
-                    "time": elapsed
-                })
-
-                print(f"Test RMSE: {test_rmse:.4f}")
-
+    def save_results(self):
         results_df = pd.DataFrame(self.results)
-
         results_path = os.path.join(
             self.output_dir,
-            "experiment_lambda_results.csv"
+            "lambda_results.csv"
         )
 
         results_df.to_csv(results_path, index=False)
-
         print(f"\nResultados individuales guardados en: {results_path}")
 
+        return results_df
+
+
+    def make_summary(self, results_df: DataFrame):
         summary = (
             results_df[results_df["method"] != "Baseline"]
             .groupby(["method", "lambda"])["test_rmse"]
@@ -147,11 +159,11 @@ class LambdaTester:
         baseline_summary = pd.DataFrame([
             {
                 "method": "Baseline",
-                "lambda": reg,
+                "lambda": lambda_value,
                 "mean_rmse": baseline_row["test_rmse"],
                 "std_rmse": 0.0
             }
-            for reg in self.lambda_values
+            for lambda_value in self.lambda_values
         ])
 
         self.summary = pd.concat(
@@ -164,19 +176,22 @@ class LambdaTester:
             inplace=True
         )
 
+
+    def save_summary(self):
         summary_path = os.path.join(
             self.output_dir,
-            "experiment_lambda_summary.csv"
+            "lambda_summary.csv"
         )
 
         self.summary.to_csv(summary_path, index=False)
 
         print(f"Resumen guardado en: {summary_path}")
 
+
+    def show_summary(self):
         print("\n========== RESUMEN ==========")
         print(self.summary.to_string(index=False))
 
-        return self.summary
 
     def plot(self):
         if self.summary is None:
@@ -200,9 +215,9 @@ class LambdaTester:
                 label=method
             )
 
-        plt.xlabel("Parámetro de regularización (λ)")
+        plt.xlabel("Parámetro de regularización (lambda)")
         plt.ylabel("Test RMSE")
-        plt.title(f"RMSE según la regularización λ (k={self.k})")
+        plt.title("Lambda Runner: RMSE según la regularización")
         plt.xticks(self.lambda_values)
         plt.grid(True, alpha=0.3)
         plt.legend()
@@ -210,7 +225,7 @@ class LambdaTester:
 
         plot_path = os.path.join(
             self.output_dir,
-            "experiment_lambda_plot.png"
+            "lambda_plot.png"
         )
 
         plt.savefig(plot_path, dpi=300)
