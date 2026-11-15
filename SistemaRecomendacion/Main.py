@@ -44,7 +44,6 @@ def print_predictions_quality(name, model):
 
 
 def print_recommendations(name, model, user_idx):
-    global top_items, rank, item_idx, pred_score
     print(f"\n--- Top 5 Recomendaciones para el Usuario {user_idx + 1} ({name:3s}) ---")
     top_items = model.recommend(user_idx, R_train, top_k=5)
     for rank, item_idx in enumerate(top_items, start=1):
